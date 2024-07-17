@@ -19,11 +19,13 @@ set (CMAKE_CPP_FLAGS                  "${CMAKE_CPP_FLAGS} -z stack-size=32768")
 set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-s WASM=1 -s STANDALONE_WASM=1 --no-entry -s EXPORTED_FUNCTIONS='[_init, _saveMemory, _ballsMemory, _canvasMemory, _save, _load, _step, _render, _saveSize]'")
 
+include(cmake/LibPhysics.cmake)
 
-#target_link_libraries(${PROJECT_NAME} PRIVATE argparse SDL2::SDL2 SDL2_ttf unofficial::skia::skia SmoothScroll)
-
+target_link_libraries(${PROJECT_NAME} PRIVATE physics)
+target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 add_library(project_warnings INTERFACE)
+
 include(cmake/CompilerWarnings.cmake)
 set_project_warnings(project_warnings)
 

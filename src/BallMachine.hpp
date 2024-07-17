@@ -4,29 +4,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <libphysics/physics.h>
+#ifdef __cplusplus
+}
+#endif
+#include <array>
 #include <span>
-
-struct pos2 {
-    float x;
-    float y;
-};
-
-struct vec2 {
-    float x;
-    float y;
-};
-
-// Assumed normal points up if a is left of b, down if b is left of a
-struct surface {
-    pos2 a;
-    pos2 b;
-};
-
-struct ball {
-    pos2 pos;
-    float r;
-    vec2 velocity;
-};
 
 class Canvas {
 public:
@@ -66,10 +52,16 @@ public:
         m_balls = std::span { ball_memory, max_balls };
         m_canvas = Canvas { canvas_memory, max_canvas_size };
 
-        for (size_t i = 0; i < max_balls; ++i) {
-            ball* ball = &m_balls[i];
-            ball->velocity.y = 1.F;
-        }
+        m_surfaces = {
+
+            // Single surface in the middle of the screen
+            // screen space is 0,0 in the top left corner
+            // 1,1 is the bottom right corner
+            surface {
+                { 0.2F, 0.5F }, // a
+                { 0.8F, 0.5F }, // b
+            }
+        };
     }
 
     [[nodiscard]] void* balls_memory() const
@@ -86,11 +78,14 @@ public:
     {
         for (size_t i = 0; i < num_balls; ++i) {
             ball* ball = &m_balls[i];
-            if (std::abs(ball->velocity.y) < 1.F) {
-                ball->velocity.y = 1.F;
-            }
-            ball->pos.x += ball->velocity.x * delta;
-            ball->pos.y += ball->velocity.y * delta;
+            apply_gravity(ball, delta);
+        }
+
+        for (size_t i = 0; i < num_balls; ++i) {
+            ball* ball = &m_balls[i];
+            // ball->pos.x += ball->velocity.x * delta;
+            // ball->pos.y += ball->velocity.y * delta;
+            surface_push_if_colliding(m_surfaces.data(), ball, &ball->velocity, delta, 0.1F);
         }
     }
 
@@ -109,6 +104,7 @@ public:
 private:
     std::span<ball> m_balls;
     Canvas m_canvas;
+    std::array<surface, 1> m_surfaces;
 
     size_t m_last_canvas_width = 0;
     size_t m_last_canvas_height = 0;
