@@ -10,20 +10,19 @@ extern "C" {
 #endif
 
 #include <canvas_ity/canvas_ity.hpp>
-#include <span>
 #include <vector>
 
 using pixel = int32_t;
 class Canvas {
 public:
     Canvas() = default;
-    Canvas(pixel* canvas_memory, size_t max_canvas_size)
-        : m_canvas(std::span { canvas_memory, max_canvas_size })
+    explicit Canvas(size_t max_canvas_size)
+        : m_canvas(max_canvas_size)
 
     {
     }
 
-    [[nodiscard]] int32_t* canvas_memory() const
+    [[nodiscard]] int32_t* canvas_memory()
     {
         return m_canvas.data();
     }
@@ -41,16 +40,16 @@ public:
     }
 
 private:
-    std::span<int32_t> m_canvas;
+    std::vector<int32_t> m_canvas;
 };
 
 class BallMachine {
 public:
     BallMachine() = default;
-    void init(ball* ball_memory, size_t max_balls, int32_t* canvas_memory, size_t max_canvas_size)
+    void init(size_t max_balls, size_t max_canvas_size)
     {
-        m_balls = std::span { ball_memory, max_balls };
-        m_canvas = Canvas { canvas_memory, max_canvas_size };
+        m_balls = std::vector<ball>(max_balls);
+        m_canvas = Canvas { max_canvas_size };
 
         m_surfaces = {
 
@@ -72,12 +71,12 @@ public:
         };
     }
 
-    [[nodiscard]] void* balls_memory() const
+    [[nodiscard]] void* balls_memory()
     {
         return m_balls.data();
     }
 
-    [[nodiscard]] void* canvas_memory() const
+    [[nodiscard]] void* canvas_memory()
     {
         return m_canvas.canvas_memory();
     }
@@ -93,8 +92,7 @@ public:
             ball* ball = &m_balls[i];
             for (auto const& surface : m_surfaces) {
 
-                vec2 res;
-                if (surface_collision_resolution(&surface, &ball->pos, &ball->velocity, &res)) {
+                if (vec2 res {}; surface_collision_resolution(&surface, &ball->pos, &ball->velocity, &res)) {
 
                     // surface_push_if_colliding(&surface, ball, &ball->velocity, delta, 0.01F);
                     auto const normal = surface_normal(&surface);
@@ -105,15 +103,18 @@ public:
         }
     }
 
-    pos2 pix2pos(pos2 pos_norm, size_t canvas_width, size_t canvas_height)
+    static pos2 pix2pos(pos2 pos_norm, size_t canvas_width, size_t canvas_height)
     {
-        return { pos_norm.x * canvas_width, canvas_height - pos_norm.y * canvas_width };
+        return {
+            pos_norm.x * static_cast<float>(canvas_width),
+            static_cast<float>(canvas_height) - pos_norm.y * static_cast<float>(canvas_width)
+        };
     }
 
     void render(size_t canvas_width, size_t canvas_height);
 
 private:
-    std::span<ball> m_balls;
+    std::vector<ball> m_balls;
     Canvas m_canvas;
     std::vector<surface> m_surfaces;
 
