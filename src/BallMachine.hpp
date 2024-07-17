@@ -1,9 +1,6 @@
 #ifndef BALL_MACHINE_HPP
 #define BALL_MACHINE_HPP
 
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -11,31 +8,34 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#include <array>
-#include <span>
 
+#include <canvas_ity/canvas_ity.hpp>
+#include <span>
+#include <vector>
+
+using pixel = int32_t;
 class Canvas {
 public:
     Canvas() = default;
-    Canvas(int32_t* canvas_memory, size_t max_canvas_size)
+    Canvas(pixel* canvas_memory, size_t max_canvas_size)
         : m_canvas(std::span { canvas_memory, max_canvas_size })
 
     {
     }
 
-    [[nodiscard]] void* canvas_memory() const
+    [[nodiscard]] int32_t* canvas_memory() const
     {
         return m_canvas.data();
     }
 
     void clear()
     {
-        for (int32_t& pixel : m_canvas) {
-            pixel = 0xFFFFFFFF; // NOLINT(cppcoreguidelines-narrowing-conversions)
+        for (pixel& pixel : m_canvas) {
+            pixel = 0xFF00FFFF; // NOLINT(cppcoreguidelines-narrowing-conversions)
         }
     }
 
-    void set_pixel(size_t x, size_t y, int32_t color)
+    void set_pixel(size_t x, size_t y, pixel color)
     {
         m_canvas[y * x + x] = color;
     }
@@ -58,8 +58,16 @@ public:
             // screen space is 0,0 in the top left corner
             // 1,1 is the bottom right corner
             surface {
-                { 0.2F, 0.5F }, // a
-                { 0.8F, 0.5F }, // b
+                { 0.2F, 0.5F },  // a
+                { 0.8F, 0.45F }, // b
+            },
+            surface {
+                { 0.85F, 0.2F }, // a
+                { 1.0F, 0.8F },  // b
+            },
+            surface {
+                { 0.0F, 0.8F },  // a
+                { 0.15F, 0.2F }, // b
             }
         };
     }
@@ -83,28 +91,31 @@ public:
 
         for (size_t i = 0; i < num_balls; ++i) {
             ball* ball = &m_balls[i];
-            // ball->pos.x += ball->velocity.x * delta;
-            // ball->pos.y += ball->velocity.y * delta;
-            surface_push_if_colliding(m_surfaces.data(), ball, &ball->velocity, delta, 0.1F);
+            for (auto const& surface : m_surfaces) {
+
+                vec2 res;
+                if (surface_collision_resolution(&surface, &ball->pos, &ball->velocity, &res)) {
+
+                    // surface_push_if_colliding(&surface, ball, &ball->velocity, delta, 0.01F);
+                    auto const normal = surface_normal(&surface);
+                    auto const zero = vec2 { 0.0F, 0.0F };
+                    apply_ball_collision(ball, &res, &normal, &zero, delta, 0.9F);
+                }
+            }
         }
     }
 
-    void render(size_t canvas_width, size_t canvas_height)
+    pos2 pix2pos(pos2 pos_norm, size_t canvas_width, size_t canvas_height)
     {
-        if (m_last_canvas_width == canvas_width && m_last_canvas_height == canvas_height) {
-            return;
-        }
-
-        m_canvas.clear();
-
-        m_last_canvas_width = canvas_width;
-        m_last_canvas_height = canvas_height;
+        return { pos_norm.x * canvas_width, canvas_height - pos_norm.y * canvas_width };
     }
+
+    void render(size_t canvas_width, size_t canvas_height);
 
 private:
     std::span<ball> m_balls;
     Canvas m_canvas;
-    std::array<surface, 1> m_surfaces;
+    std::vector<surface> m_surfaces;
 
     size_t m_last_canvas_width = 0;
     size_t m_last_canvas_height = 0;
