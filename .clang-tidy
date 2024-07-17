@@ -1,0 +1,31 @@
+---
+Checks: "*,
+        -abseil-*,
+        -altera-*,
+        -android-*,
+        -fuchsia-*,
+        -google-*,
+        -llvm*,
+        -modernize-use-trailing-return-type,
+        -zircon-*,
+        -readability-else-after-return,
+        -readability-identifier-length,
+        -readability-static-accessed-through-instance,
+        -readability-avoid-const-params-in-decls,
+        -cppcoreguidelines-non-private-member-variables-in-classes,
+        -misc-non-private-member-variables-in-classes,
+        cppcoreguidelines-pro-type-cstyle-cast,
+        -cppcoreguidelines-avoid-magic-numbers,
+        -readability-magic-numbers,
+        google-readability-casting,
+        -bugprone-easily-swappable-parameters,
+        -cppcoreguidelines-avoid-const-or-ref-data-members
+"
+
+HeaderFilterRegex: ''
+FormatStyle:     none
+
+CheckOptions:
+  - key:             cppcoreguidelines-avoid-do-while.IgnoreMacros
+    value:           'true'
+

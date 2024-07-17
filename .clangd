@@ -1,0 +1,5 @@
+Diagnostics:
+  ClangTidy:
+    FastCheckFilter: None
+    Remove: cppcoreguidelines-avoid-const-or-ref-data-members
+
