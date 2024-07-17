@@ -8,7 +8,6 @@ add_executable(${PROJECT_NAME}
   src/main.cpp
   src/BallMachine.cpp
   src/canvas_ity.cpp
-  src/printer.cpp
   )
 
 target_compile_options(${PROJECT_NAME} PRIVATE 
