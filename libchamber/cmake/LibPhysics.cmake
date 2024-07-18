@@ -1,12 +1,12 @@
 include(FetchContent)
 
-set(libphysics_path "${CMAKE_SOURCE_DIR}/libs/libphysics.a")
+set(libphysics_path "${CMAKE_CURRENT_SOURCE_DIR}/libs/libphysics.a")
 
 if(NOT EXISTS ${libphysics_path})
   FetchContent_Declare(
     libphysics
     URL https://sphaerophoria.dev/libphysics.a
-    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/libs
+    DOWNLOAD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs
     DOWNLOAD_NO_EXTRACT TRUE
     )
 
