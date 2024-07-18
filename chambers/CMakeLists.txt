@@ -17,3 +17,4 @@ add_link_options(
 )
 
 add_subdirectory(portals)
+add_subdirectory(simple_example)
