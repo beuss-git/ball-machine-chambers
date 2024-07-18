@@ -1,7 +1,7 @@
 project(portals-chamber)
 
 add_executable(${PROJECT_NAME} 
-  src/portals.cpp
+  src/portals_chamber.cpp
   src/portal.cpp
   src/canvas_ity.cpp
   src/utils/image.cpp

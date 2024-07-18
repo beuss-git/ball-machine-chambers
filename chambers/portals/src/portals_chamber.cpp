@@ -1,4 +1,4 @@
-#include "portals.hpp"
+#include "portals_chamber.hpp"
 #include <cstddef>
 #include <libchamber/exports.h>
 #include <libchamber/print.hpp>
