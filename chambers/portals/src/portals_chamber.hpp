@@ -13,15 +13,25 @@ public:
     Portals& operator=(Portals&&) = delete;
     ~Portals() override = default;
 
+    static vec2 compute_width_height(size_t max_canvas_size)
+    {
+        auto const aspect_ratio = 1.F / 0.7F;
+        auto const max_canvas_height = std::sqrt(static_cast<float>(max_canvas_size) / aspect_ratio);
+        auto const max_canvas_width = max_canvas_height * aspect_ratio;
+        return { max_canvas_width, max_canvas_height };
+    }
+
     Portals(size_t max_balls, size_t max_canvas_size)
         : Chamber(max_balls, max_canvas_size)
-        , m_ctx(300, 209)
+        , m_ctx(compute_width_height(max_canvas_size).x, compute_width_height(max_canvas_size).y)
     {
         m_blue_portal = Portal { { 0.805F, 0.3F }, { 0.805F, 0.35F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(45.F), 0.7F };
         m_orange_portal = Portal { { 0.25F, 0.1F }, { 0.25F, 0.15F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0), 0.5F };
 
-        m_blue_portal_texture = render_portal_to_texture(m_ctx, 300, 209, m_blue_portal);
-        m_orange_portal_texture = render_portal_to_texture(m_ctx, 300, 209, m_orange_portal);
+        auto const [max_canvas_width, max_canvas_height] = compute_width_height(max_canvas_size);
+
+        m_blue_portal_texture = render_portal_to_texture(m_ctx, max_canvas_width, max_canvas_height, m_blue_portal);
+        m_orange_portal_texture = render_portal_to_texture(m_ctx, max_canvas_width, max_canvas_height, m_orange_portal);
     }
 
     void step(size_t num_balls, float delta) override;

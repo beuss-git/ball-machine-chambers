@@ -48,7 +48,6 @@ void Portals::step(size_t num_balls, float delta)
     for (auto& ball : std::ranges::views::take(m_balls, num_balls)) {
         apply_gravity(&ball, delta);
     }
-    print("Stepping Ball Machine with %zu balls and delta %f\n", num_balls, delta);
 
     std::array<Portal, 2> portals = { m_blue_portal, m_orange_portal };
     for (size_t i = 0; i < num_balls; ++i) {
