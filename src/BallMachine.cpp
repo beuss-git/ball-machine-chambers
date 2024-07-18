@@ -1,6 +1,7 @@
 #include "BallMachine.hpp"
 
 #include "printer.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -16,7 +17,7 @@ void draw_line(canvas_ity::canvas& ctx, float x1, float y1, float x2, float y2)
 
 void BallMachine::draw_portal(canvas_ity::canvas& context, float cx, float cy, float rx, float ry, Color const& portal_color, float rotation)
 {
-    print("Drawing portal at cx=%f, cy=%f, rx=%f, ry=%f, color=(%f, %f, %f)\n", cx, cy, rx, ry, portal_color.r, portal_color.g, portal_color.b);
+    // print("Drawing portal at cx=%f, cy=%f, rx=%f, ry=%f, color=(%f, %f, %f)\n", cx, cy, rx, ry, portal_color.r, portal_color.g, portal_color.b);
     int const num_segments = 100;                                          // Increase for smoother ellipse
     float const angle_step = 2 * std::numbers::pi_v<float> / num_segments; // Full circle divided by the number of segments
 
@@ -31,9 +32,9 @@ void BallMachine::draw_portal(canvas_ity::canvas& context, float cx, float cy, f
         float rotated_y = sin(rotation) * x + cos(rotation) * y + cy;
 
         if (i == 0) {
-            context.move_to(pix2pos_x(rotated_x), pix2pos_y(rotated_y));
+            context.move_to((rotated_x), (rotated_y));
         } else {
-            context.line_to(pix2pos_x(rotated_x), pix2pos_y(rotated_y));
+            context.line_to((rotated_x), (rotated_y));
         }
     }
     context.close_path();
@@ -58,9 +59,9 @@ void BallMachine::draw_portal(canvas_ity::canvas& context, float cx, float cy, f
         float rotated_y = sin(rotation) * x + cos(rotation) * y + cy;
 
         if (i == 0) {
-            context.move_to(pix2pos_x(rotated_x), pix2pos_y(rotated_y));
+            context.move_to((rotated_x), (rotated_y));
         } else {
-            context.line_to(pix2pos_x(rotated_x), pix2pos_y(rotated_y));
+            context.line_to((rotated_x), (rotated_y));
         }
     }
     context.close_path();
@@ -69,45 +70,9 @@ void BallMachine::draw_portal(canvas_ity::canvas& context, float cx, float cy, f
     context.fill(); // This fill is for the shadow to take effect
 
     // Turn off shadow for other drawings
-    context.set_shadow_color(0.0f, 0.0f, 0.0f, 0.0f);
+    context.set_shadow_color(0.0F, 0.0F, 0.0F, 0.0F);
 }
 
-void BallMachine::render(size_t canvas_width, size_t canvas_height)
-
-{
-    if (m_last_canvas_width == canvas_width && m_last_canvas_height == canvas_height) {
-        return;
-    }
-
-    m_canvas.clear();
-
-    m_last_canvas_width = canvas_width;
-    m_last_canvas_height = canvas_height;
-
-    canvas_ity::canvas ctx(static_cast<int>(canvas_width), static_cast<int>(canvas_height));
-
-    for (auto const& surface : m_surfaces) {
-        auto const a = pix2pos(surface.a);
-        auto const b = pix2pos(surface.b);
-        draw_line(ctx, a.x, a.y, b.x, b.y);
-    }
-
-    // Color blue_portal_color = { 0.0F, 0.7F, 1.0F }; // A typical blue portal color
-    //  draw_portal(ctx, 0.5F, 0.5F, 0.15F, 0.05F, blue_portal_color);
-
-    for (auto const& portal : m_portals) {
-        draw_portal(ctx, portal.pos().x, portal.pos().y, portal.rad_x(), portal.rad_y(), portal.color(), portal.rotation());
-        // draw_portal_2(ctx, portal.pos().x, portal.pos().y, portal.rad_x(), portal.rad_y(), portal.rotation());
-    }
-
-    ctx.get_image_data(
-        reinterpret_cast<unsigned char*>(m_canvas.canvas_memory()),
-        static_cast<int>(canvas_width), static_cast<int>(canvas_height),
-        static_cast<int>(canvas_width * 4),
-        0, 0);
-}
-
-// Function to rotate a vector by a given angle
 vec2 vec2_rotate(vec2 const& vec, float angle)
 {
     float cos_a = cos(angle);
@@ -116,6 +81,158 @@ vec2 vec2_rotate(vec2 const& vec, float angle)
         vec.x * cos_a - vec.y * sin_a,
         vec.x * sin_a + vec.y * cos_a
     };
+}
+
+bounds calculate_image_bounds(Image const& image)
+{
+    int minX = image.width;
+    int maxX = 0;
+    int minY = image.height;
+    int maxY = 0;
+
+    // Lambda to check if a pixel is non-transparent
+    auto const is_pixel_visible = [&](int index) {
+        // int alpha = image.data[index] & 0xFF;
+        //   Alpha is the last byte of the pixel data
+        int alpha = (image.data[index] >> 24) & 0xFF;
+        return alpha != 0;
+    };
+
+    for (int y = 0; y < image.height; ++y) {
+        for (int x = 0; x < image.width; ++x) {
+            int index = y * image.width + x;
+            if (is_pixel_visible(index)) {
+                minX = std::min(minX, x);
+                maxX = std::max(maxX, x);
+                minY = std::min(minY, y);
+                maxY = std::max(maxY, y);
+            }
+        }
+    }
+
+    // Adjust the bounds to ensure the sprite is enclosed
+    bounds result;
+    result.left = minX;
+    result.right = maxX;
+    result.top = minY;
+    result.bottom = maxY;
+
+    return result;
+}
+
+Image crop_and_resize_image(Image const& sourceImage, bounds const& b)
+{
+    // Calculate the new dimensions
+    int new_width = b.right - b.left + 1;
+    int new_height = b.bottom - b.top + 1;
+
+    // Create a new image with the new dimensions
+    Image cropped_image;
+    cropped_image.width = new_width;
+    cropped_image.height = new_height;
+    cropped_image.data.resize(new_width * new_height);
+
+    // Copy the pixels from the source image to the new image
+    for (int y = b.top; y <= b.bottom; ++y) {
+        for (int x = b.left; x <= b.right; ++x) {
+            int source_index = y * sourceImage.width + x;
+            int dest_index = (y - b.top) * new_width + (x - b.left);
+            cropped_image.data[dest_index] = sourceImage.data[source_index];
+        }
+    }
+
+    return cropped_image;
+}
+
+Image BallMachine::render_portal_to_texture(canvas_ity::canvas& context, size_t canvas_width, size_t canvas_height, Portal const& portal)
+{
+    m_ctx.clear_rectangle(0, 0, canvas_width, canvas_height);
+
+    draw_portal(context, canvas_width / 2.f, canvas_height / 2.f, portal.rad_x() * canvas_width, portal.rad_y() * canvas_height, portal.color(), portal.rotation());
+
+    Image render_texture;
+    render_texture.data.clear();
+    render_texture.data.resize(canvas_width * canvas_height * 4);
+    render_texture.width = canvas_width;
+    render_texture.height = canvas_height;
+
+    context.get_image_data(
+        reinterpret_cast<unsigned char*>(render_texture.data.data()),
+        static_cast<int>(canvas_width), static_cast<int>(canvas_height),
+        static_cast<int>(canvas_width * 4),
+        0, 0);
+
+    auto bounds = calculate_image_bounds(render_texture);
+    print("Rendered portal texture with bounds left=%f, right=%f, top=%f, bottom=%f\n", bounds.left, bounds.right, bounds.top, bounds.bottom);
+    auto new_image = crop_and_resize_image(render_texture, bounds);
+    print("Cropped portal texture with width=%d, height=%d\n", new_image.width, new_image.height);
+    return new_image;
+}
+
+void BallMachine::put_image(canvas_ity::canvas& context, size_t x, size_t y, Image const& image)
+{
+    context.put_image_data(
+        (unsigned char*)(image.data.data()),
+        static_cast<int>(image.width), static_cast<int>(image.height),
+        static_cast<int>(image.width * 4),
+        x, y);
+}
+
+void draw_image(canvas_ity::canvas& ctx, Image const& img, int x, int y)
+{
+    ctx.draw_image(reinterpret_cast<unsigned char const*>(img.data.data()), img.width, img.height, img.width * 4, x - (img.width / 2.F), y - (img.height / 2.F), img.width, img.height);
+}
+
+void BallMachine::render(size_t canvas_width, size_t canvas_height)
+{
+    // if (m_last_canvas_width == canvas_width && m_last_canvas_height == canvas_height) {
+    // return;
+    //}
+
+    print("Rendering Ball Machine with canvas size %zu x %zu\n", canvas_width, canvas_height);
+    m_canvas.clear();
+
+    m_last_canvas_width = canvas_width;
+    m_last_canvas_height = canvas_height;
+
+    m_ctx.clear_rectangle(0, 0, canvas_width, canvas_height);
+    m_ctx.set_color(canvas_ity::fill_style, 1.0F, 1.0F, 1.0F, 1.0F);
+    m_ctx.fill_rectangle(0, 0, canvas_width, canvas_height);
+    //
+    // for (auto const& surface : m_surfaces) {
+    //     auto const a = pix2pos(surface.a);
+    //     auto const b = pix2pos(surface.b);
+    //     draw_line(m_ctx, a.x, a.y, b.x, b.y);
+    // }
+
+    // Color blue_portal_color = { 0.0F, 0.7F, 1.0F }; // A typical blue portal color
+    //  draw_portal(ctx, 0.5F, 0.5F, 0.15F, 0.05F, blue_portal_color);
+
+    // std::array<Portal, 2> const portals = { m_blue_portal, m_orange_portal };
+    // for (auto const& portal : portals) {
+    //  draw_portal(m_ctx, portal.pos().x, portal.pos().y, portal.rad_x(), portal.rad_y(), portal.color(), portal.rotation());
+    //   draw_portal_2(ctx, portal.pos().x, portal.pos().y, portal.rad_x(), portal.rad_y(), portal.rotation());
+    //}
+    // m_orange_portal_texture = Image {
+    //     .width = 100,
+    //     .height = 100,
+    //     .data = std::vector<int32_t>(100 * 100),
+    // };
+    // std::fill(m_orange_portal_texture.data.begin(), m_orange_portal_texture.data.end(), 0xFF0000FF);
+
+    draw_image(m_ctx, m_orange_portal_texture, pix2pos_x(m_orange_portal.pos().x), pix2pos_y(m_orange_portal.pos().y));
+    draw_image(m_ctx, m_blue_portal_texture, pix2pos_x(m_blue_portal.pos().x), pix2pos_y(m_blue_portal.pos().y));
+    //  put_image(m_ctx, 0, 0, m_orange_portal_texture);
+    //   put_image(m_ctx, 0, 0, m_blue_portal_texture);
+    //    put_image(m_ctx, 0.1F, 0.1F, m_orange_portal_texture);
+    //     put_image(m_ctx, m_orange_portal.pos().x, m_orange_portal.pos().y, m_orange_portal_texture);
+    //
+
+    m_ctx.get_image_data(
+        reinterpret_cast<unsigned char*>(m_canvas.canvas_memory()),
+        static_cast<int>(canvas_width), static_cast<int>(canvas_height),
+        static_cast<int>(canvas_width * 4),
+        0, 0);
 }
 vec2 portal_normal(Portal const& portal)
 {
@@ -188,11 +305,12 @@ void BallMachine::step(size_t num_balls, float delta)
         }
     }
 
+    std::array<Portal, 2> portals = { m_blue_portal, m_orange_portal };
     for (size_t i = 0; i < num_balls; ++i) {
         ball* ball = &m_balls[i];
-        for (size_t j = 0; j < m_portals.size(); ++j) {
-            auto const& entry_portal = m_portals.at(j);
-            auto const& exit_portal = m_portals.at((j + 1) % m_portals.size());
+        for (size_t j = 0; j < portals.size(); ++j) {
+            auto const& entry_portal = portals.at(j);
+            auto const& exit_portal = portals.at((j + 1) % portals.size());
 
             auto surface_in = entry_portal.calculate_surface();
             if (vec2 res {}; surface_collision_resolution(&surface_in, &ball->pos, &ball->velocity, &res)) {
@@ -200,4 +318,7 @@ void BallMachine::step(size_t num_balls, float delta)
             }
         }
     }
+
+    // m_blue_portal.update_position(delta);
+    m_orange_portal.update_position(delta);
 }
