@@ -136,7 +136,6 @@
 #ifndef CANVAS_ITY_HPP
 #define CANVAS_ITY_HPP
 
-#include "../src/printer.hpp"
 #include <cstddef>
 #include <vector>
 
@@ -2634,7 +2633,6 @@ canvas::canvas(
     , bitmap(new rgba[width * height])
     , saves(0)
 {
-    print("Canvas::Canvas(%d, %d)\n", width, height);
     affine_matrix identity = { 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f };
     forward = identity;
     inverse = identity;
@@ -2651,7 +2649,6 @@ canvas::canvas(
 
 canvas::~canvas()
 {
-    print("canvas::~canvas()\n");
     delete[] bitmap;
     while (canvas* head = saves) {
         saves = head->saves;

@@ -1,6 +1,7 @@
 #ifndef PRINTER_HPP
 #define PRINTER_HPP
 
+#include <array>
 #include <cstdarg>
 #include <cstddef>
 #include <cstdio>

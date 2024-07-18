@@ -1,4 +1,4 @@
-#include "Image.hpp"
+#include "image.hpp"
 
 bounds calculate_image_bounds(Image const& image)
 {

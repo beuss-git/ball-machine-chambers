@@ -1,12 +1,11 @@
-#ifndef MAIN_HPP
-#define MAIN_HPP
+#ifndef EXPORTS_HPP
+#define EXPORTS_HPP
 #include <cstddef>
 #include <cstdint>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-void init(size_t max_num_balls, size_t max_canvas_size);
 void* ballsMemory(void);
 void* canvasMemory(void);
 void* saveMemory(void);
@@ -52,4 +51,4 @@ __wasi_errno_t __wasi_fd_write(
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // EXPORTS_HPP
