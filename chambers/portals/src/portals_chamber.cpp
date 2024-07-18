@@ -64,6 +64,7 @@ void Portals::step(size_t num_balls, float delta)
         }
     }
 
+    m_blue_portal.update_position(delta);
     m_orange_portal.update_position(delta);
 }
 

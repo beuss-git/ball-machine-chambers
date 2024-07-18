@@ -19,8 +19,7 @@ surface Portal::calculate_surface() const
 
 vec2 Portal::normal() const
 {
-    // Calculate normal vector from portal's rotation (rotate by 90 degrees to get the normal)
-    float normal_rotation = m_rotation + deg2rad(90.F); // 90 degrees in radians
+    float normal_rotation = m_rotation + deg2rad(90.F);
     return {
         cos(normal_rotation),
         sin(normal_rotation)
@@ -42,7 +41,7 @@ void Portal::update_position(float delta)
     float t = m_time_accumulator / m_movement_duration;
 
     // Apply cubic easing function
-    float eased_t = linear_ease(t);
+    float eased_t = ease_in_out_sine(t);
 
     // Linearly interpolate the position based on the eased factor eased_t
     m_pos.x = (1 - eased_t) * m_start_pos.x + eased_t * m_end_pos.x;

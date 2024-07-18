@@ -17,8 +17,8 @@ public:
         : Chamber(max_balls, max_canvas_size)
         , m_ctx(300, 209)
     {
-        m_blue_portal = Portal { { 0.805F, 0.3F }, { 0.805F, 0.0F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(45.F) };
-        m_orange_portal = Portal { { 0.2F, 0.095F }, { 1.F - 0.2F, 0.095F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0) };
+        m_blue_portal = Portal { { 0.805F, 0.3F }, { 0.805F, 0.35F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(45.F), 0.7F };
+        m_orange_portal = Portal { { 0.25F, 0.1F }, { 0.25F, 0.15F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0), 0.5F };
 
         m_blue_portal_texture = render_portal_to_texture(m_ctx, 300, 209, m_blue_portal);
         m_orange_portal_texture = render_portal_to_texture(m_ctx, 300, 209, m_orange_portal);
