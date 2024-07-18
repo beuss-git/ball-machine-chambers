@@ -1,3 +1,5 @@
+#ifndef MAIN_HPP
+#define MAIN_HPP
 #include <cstddef>
 #include <cstdint>
 
@@ -49,4 +51,5 @@ __wasi_errno_t __wasi_fd_write(
 
 #ifdef __cplusplus
 }
+#endif
 #endif

@@ -1,3 +1,5 @@
+#ifndef LIBPHYSICS_PHYSICS_H
+#define LIBPHYSICS_PHYSICS_H
 #include <stdbool.h>
 
 struct pos2 {
@@ -41,3 +43,5 @@ void surface_push_if_colliding(const struct surface* surface, struct ball* ball,
 void apply_ball_collision(struct ball* ball, const struct vec2* resolution, const struct vec2* obj_normal, const struct vec2* obj_velocity, float delta, float elasticity);
 void apply_ball_ball_collision(struct ball* a, struct ball* b);
 void apply_gravity(struct ball* ball, float delta);
+
+#endif // LIBPHYSICS_PHYSICS_H

@@ -1,8 +1,8 @@
 #ifndef BALL_MACHINE_HPP
 #define BALL_MACHINE_HPP
 
+#include "math.hpp"
 #include <cmath>
-#include <limits>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -10,47 +10,10 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
+#include "Image.hpp"
 #include "printer.hpp"
 #include <canvas_ity/canvas_ity.hpp>
 #include <vector>
-
-using pixel = int32_t;
-class Canvas {
-public:
-    Canvas() = default;
-    explicit Canvas(size_t max_canvas_size)
-        : m_canvas(max_canvas_size)
-
-    {
-    }
-
-    [[nodiscard]] int32_t* canvas_memory()
-    {
-        return m_canvas.data();
-    }
-
-    void clear()
-    {
-        for (pixel& pixel : m_canvas) {
-            pixel = 0xFF00FFFF; // NOLINT(cppcoreguidelines-narrowing-conversions)
-        }
-    }
-
-    void set_pixel(size_t x, size_t y, pixel color)
-    {
-        m_canvas[y * x + x] = color;
-    }
-
-private:
-    std::vector<int32_t> m_canvas;
-};
-
-struct Color {
-    float r { 0 };
-    float g { 0 };
-    float b { 0 };
-};
 
 class Portal {
 public:
@@ -75,22 +38,31 @@ public:
     void set_rotation(float rotation) { m_rotation = rotation; }
     [[nodiscard]] surface calculate_surface() const
     {
-        float theta = m_rotation;
-        auto const direction = vec2 { cos(theta), sin(theta) }; // major axis direction
+        auto const direction = vec2 { std::cos(m_rotation), std::sin(m_rotation) }; // major axis direction
         pos2 center = m_pos;
 
         pos2 a = {
             center.x - m_rad_x * direction.x,
-            center.y - m_rad_y * direction.y
+            center.y - m_rad_x * direction.y
         };
         pos2 b = {
             center.x + m_rad_x * direction.x,
-            center.y + m_rad_y * direction.y
+            center.y + m_rad_x * direction.y
         };
         return surface { a, b };
     }
 
-    float cubic_ease_in_out(float t) const
+    vec2 normal() const
+    {
+        // Calculate normal vector from portal's rotation (rotate by 90 degrees to get the normal)
+        float normal_rotation = m_rotation + deg2rad(90.F); // 90 degrees in radians
+        return {
+            cos(normal_rotation),
+            sin(normal_rotation)
+        };
+    }
+
+    [[maybe_unused]] float cubic_ease_in_out(float t) const
     {
         if (t < 0.5F) {
             return 4 * t * t * t;
@@ -143,23 +115,6 @@ private:
     float m_rotation {};
 };
 
-struct Image {
-    int width;
-    int height;
-    std::vector<int32_t> data;
-};
-
-// struct bounds {
-//     vec2 min { std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
-//     vec2 max { std::numeric_limits<float>::min(), std::numeric_limits<float>::min() };
-// };
-struct bounds {
-    float left;
-    float right;
-    float top;
-    float bottom;
-};
-
 class BallMachine {
 public:
     BallMachine(size_t max_balls, size_t max_canvas_size)
@@ -170,39 +125,23 @@ public:
     void init(size_t max_balls, size_t max_canvas_size)
     {
         m_balls = std::vector<ball>(max_balls);
-        m_canvas = Canvas { max_canvas_size };
+        m_canvas = std::vector<int32_t>(max_canvas_size / sizeof(int32_t));
 
-        m_surfaces = {
-
-            // Single surface in the middle of the screen
-            // screen space is 0,0 in the top left corner
-            // 1,1 is the bottom right corner
-            //     surface {
-            //         { 0.2F, 0.5F },  // a
-            //         { 0.8F, 0.45F }, // b
-            //     },
-            //     surface {
-            //         { 0.85F, 0.2F }, // a
-            //         { 1.0F, 0.8F },  // b
-            //     },
-            //     surface {
-            //         { 0.0F, 0.8F },  // a
-            //         { 0.15F, 0.2F }, // b
-            //     }
-        };
-        m_blue_portal = Portal { { 0.905F, 0.5F }, { 0.905F, 0.0F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, 1.5708F };
-        m_orange_portal = Portal { { 0.2F, 0.095F }, { 1.F - 0.2F, 0.095F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, 0.0F };
+        m_blue_portal = Portal { { 0.805F, 0.3F }, { 0.805F, 0.0F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(45.F) };
+        m_orange_portal = Portal { { 0.2F, 0.095F }, { 1.F - 0.2F, 0.095F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0) };
 
         m_blue_portal_texture = render_portal_to_texture(m_ctx, 300, 209, m_blue_portal);
         m_orange_portal_texture = render_portal_to_texture(m_ctx, 300, 209, m_orange_portal);
     }
 
     [[nodiscard]] void* balls_memory() { return m_balls.data(); }
-    [[nodiscard]] void* canvas_memory() { return m_canvas.canvas_memory(); }
+    [[nodiscard]] void* canvas_memory() { return m_canvas.data(); }
+
     void step(size_t num_balls, float delta);
 
     void render(size_t canvas_width, size_t canvas_height);
 
+private:
     [[nodiscard]] float pix2pos_x(float x_norm) const
     {
         return x_norm * static_cast<float>(m_last_canvas_width);
@@ -219,16 +158,19 @@ public:
         };
     }
 
+    void clear_canvas()
+    {
+        for (int32_t& pixel : m_canvas) {
+            pixel = 0xFF00FFFF; // NOLINT(cppcoreguidelines-narrowing-conversions)
+        }
+    }
+
     void draw_portal(canvas_ity::canvas& context, float cx, float cy, float rx, float ry, Color const& portal_color, float rotation);
     Image render_portal_to_texture(canvas_ity::canvas& context, size_t canvas_width, size_t canvas_height, Portal const& portal);
 
-    void put_image(canvas_ity::canvas& context, size_t x, size_t y, Image const& image);
-
-private:
     canvas_ity::canvas m_ctx;
     std::vector<ball> m_balls;
-    Canvas m_canvas;
-    std::vector<surface> m_surfaces;
+    std::vector<int32_t> m_canvas;
     Portal m_blue_portal;
     Portal m_orange_portal;
     Image m_blue_portal_texture;
