@@ -48,6 +48,20 @@ __wasi_errno_t __wasi_fd_write(
     __builtin_trap();
 }
 
+__wasi_errno_t __wasi_environ_get(
+    uint8_t**,
+    uint8_t*)
+{
+    __builtin_trap();
+}
+
+__wasi_errno_t __wasi_environ_sizes_get(
+    __wasi_size_t*,
+    __wasi_size_t*)
+{
+    __builtin_trap();
+}
+
 #ifdef __cplusplus
 }
 #endif

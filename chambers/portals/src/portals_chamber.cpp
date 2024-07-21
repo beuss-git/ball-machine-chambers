@@ -1,4 +1,5 @@
 #include "portals_chamber.hpp"
+#include "images.hpp"
 #include <cstddef>
 #include <libchamber/exports.h>
 #include <libchamber/print.hpp>
@@ -61,12 +62,25 @@ void Portals::step(size_t num_balls, float delta)
         }
     }
 
-    m_blue_portal.update_position(delta);
-    m_orange_portal.update_position(delta);
+    // m_blue_portal.update_position(delta);
+    // m_orange_portal.update_position(delta);
+}
+
+void draw_line(canvas_ity::canvas& context, float x1, float y1, float x2, float y2)
+{
+    context.begin_path();
+    context.move_to(x1, y1);
+    context.line_to(x2, y2);
+    context.close_path();
+    context.set_color(canvas_ity::stroke_style, 0, 0, 0, 1.0F);
+    context.stroke();
 }
 
 void Portals::render(size_t canvas_width, size_t canvas_height)
 {
+    if (m_canvas_width == canvas_width && m_canvas_height == canvas_height) {
+        return;
+    }
     m_canvas_width = canvas_width;
     m_canvas_height = canvas_height;
 
@@ -74,8 +88,30 @@ void Portals::render(size_t canvas_width, size_t canvas_height)
     m_ctx.set_color(canvas_ity::fill_style, 1.0F, 1.0F, 1.0F, 1.0F);
     m_ctx.fill_rectangle(0, 0, canvas_width, canvas_height);
 
+#ifdef RENDER_LIVE
     draw_image(m_ctx, m_orange_portal_texture, pix2pos_x(m_orange_portal.pos().x), pix2pos_y(m_orange_portal.pos().y));
     draw_image(m_ctx, m_blue_portal_texture, pix2pos_x(m_blue_portal.pos().x), pix2pos_y(m_blue_portal.pos().y));
+#endif
+
+    draw_image(m_ctx,
+        blue_portal_data.data(),
+        140, 56,
+        (int)pix2pos_x(m_blue_portal.pos().x), (int)pix2pos_y(m_blue_portal.pos().y));
+
+    draw_image(m_ctx,
+        orange_portal_data.data(),
+        140, 56,
+        (int)pix2pos_x(m_orange_portal.pos().x), (int)pix2pos_y(m_orange_portal.pos().y));
+
+    // std::array<Portal, 2> portals = { m_blue_portal, m_orange_portal };
+    // for (auto const& portal : portals) {
+    //     auto const surf = portal.calculate_surface();
+    //     draw_line(m_ctx,
+    //         pix2pos_x(surf.a.x),
+    //         pix2pos_y(surf.a.y),
+    //         pix2pos_x(surf.b.x),
+    //         pix2pos_y(surf.b.y));
+    // }
 
     m_ctx.get_image_data(
         reinterpret_cast<unsigned char*>(m_canvas.data()),
@@ -84,6 +120,7 @@ void Portals::render(size_t canvas_width, size_t canvas_height)
         0, 0);
 }
 
+#ifdef RENDER_LIVE
 Image Portals::render_portal_to_texture(canvas_ity::canvas& context, size_t canvas_width, size_t canvas_height, Portal const& portal)
 {
     m_ctx.clear_rectangle(0, 0, canvas_width, canvas_height);
@@ -119,6 +156,10 @@ void Portals::draw_portal(canvas_ity::canvas& context, float cx, float cy, float
     float cos_rot = std::cos(rotation);
     float sin_rot = std::sin(rotation);
 
+    // Set up shadow for glow effect
+    context.set_shadow_blur(15.0F);                                                // Increase or decrease for stronger or weaker glow
+    context.set_shadow_color(portal_color.r, portal_color.g, portal_color.b, 1.F); // Glow color and intensity
+
     // Start the path for the portal
     context.begin_path();
     for (int i = 0; i <= num_segments; ++i) {
@@ -142,37 +183,18 @@ void Portals::draw_portal(canvas_ity::canvas& context, float cx, float cy, float
     context.set_color(canvas_ity::fill_style, portal_color.r, portal_color.g, portal_color.b, 1.0F);
     context.fill();
 
-    // Set up shadow for glow effect
-    context.set_shadow_blur(15.0F);                                                  // Increase or decrease for stronger or weaker glow
-    context.set_shadow_color(portal_color.r, portal_color.g, portal_color.b, 0.95F); // Glow color and intensity
-
-    // Draw the glowing edge around the portal
-    float glow_factor = 1.1F;
-    context.begin_path();
-    for (int i = 0; i <= num_segments; ++i) {
-        float angle = static_cast<float>(i) * angle_step;
-        float x = rx * glow_factor * std::cos(angle); // Initial x, y calculations without rotation
-        float y = ry * glow_factor * std::sin(angle);
-
-        // Apply rotation
-        float rotated_x = cos_rot * x - sin_rot * y + cx;
-        float rotated_y = sin_rot * x + cos_rot * y + cy;
-
-        if (i == 0) {
-            context.move_to(rotated_x, rotated_y);
-        } else {
-            context.line_to(rotated_x, rotated_y);
-        }
-    }
-    context.close_path();
-
-    // // Fill the edge to activate the shadow glow effect
+    // Fill the edge to activate the shadow glow effect
+    // NOTE: We fill multiple times to increase the shadow intensity since there doesn't seem to be a built in way to do it
     context.fill(); // This fill is for the shadow to take effect
+    context.fill();
+    context.fill();
 
     // Turn off shadow for other drawings
     context.set_shadow_color(0.0F, 0.0F, 0.0F, 0.0F);
 
+    context.close_path();
     context.set_color(canvas_ity::stroke_style, 0, 0, 0, 1.0F); // Set stroke color to black
     context.set_line_width(2.0F);                               // Set the line width for the border
     context.stroke();
 }
+#endif

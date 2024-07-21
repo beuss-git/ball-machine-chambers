@@ -25,13 +25,18 @@ public:
         : Chamber(max_balls, max_canvas_size)
         , m_ctx(compute_width_height(max_canvas_size).x, compute_width_height(max_canvas_size).y)
     {
-        m_blue_portal = Portal { { 0.805F, 0.3F }, { 0.805F, 0.35F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(45.F), 0.7F };
-        m_orange_portal = Portal { { 0.25F, 0.1F }, { 0.25F, 0.15F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0), 0.5F };
+        // m_blue_portal = Portal { { 0.805F, 0.25F }, { 0.805F, 0.25F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(30.F), 0.7F };
+        // m_orange_portal = Portal { { 0.20F, 0.1F }, { 0.20F, 0.15F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0), 0.5F };
+
+        m_blue_portal = Portal { { 0.5F, 0.6F }, { 0.805F, 0.25F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(180.F), 0.7F };
+        m_orange_portal = Portal { { 0.5F, 0.1F }, { 0.20F, 0.15F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0.F), 0.5F };
 
         auto const [max_canvas_width, max_canvas_height] = compute_width_height(max_canvas_size);
 
+#ifdef RENDER_LIVE
         m_blue_portal_texture = render_portal_to_texture(m_ctx, max_canvas_width, max_canvas_height, m_blue_portal);
         m_orange_portal_texture = render_portal_to_texture(m_ctx, max_canvas_width, max_canvas_height, m_orange_portal);
+#endif
     }
 
     void step(size_t num_balls, float delta) override;
@@ -55,14 +60,18 @@ private:
         };
     }
 
+#ifdef RENDER_LIVE
     void draw_portal(canvas_ity::canvas& context, float cx, float cy, float rx, float ry, Color const& portal_color, float rotation);
     Image render_portal_to_texture(canvas_ity::canvas& context, size_t canvas_width, size_t canvas_height, Portal const& portal);
+#endif
 
     canvas_ity::canvas m_ctx;
     Portal m_blue_portal;
     Portal m_orange_portal;
+#ifdef RENDER_LIVE
     Image m_blue_portal_texture;
     Image m_orange_portal_texture;
+#endif
     size_t m_canvas_width {};
     size_t m_canvas_height {};
 };

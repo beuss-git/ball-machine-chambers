@@ -63,3 +63,8 @@ void draw_image(canvas_ity::canvas& ctx, Image const& img, int x, int y)
 {
     ctx.draw_image(reinterpret_cast<unsigned char const*>(img.data.data()), img.width, img.height, img.width * 4, x - (img.width / 2.F), y - (img.height / 2.F), img.width, img.height);
 }
+
+void draw_image(canvas_ity::canvas& ctx, uint32_t const* image_data, int width, int height, int x, int y)
+{
+    ctx.draw_image(reinterpret_cast<unsigned char const*>(image_data), width, height, width * 4, x - (width / 2.F), y - (height / 2.F), width, height);
+}
