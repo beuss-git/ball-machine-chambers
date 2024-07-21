@@ -18,7 +18,7 @@ pos2 transform_point_portal_to_portal(pos2 point, Portal const& from, Portal con
     };
 
     // Rotate relative_position to align with the exit portal
-    vec2 rotated_position = vec2_rotate(relative_position, to.rotation() - from.rotation());
+    vec2 rotated_position = vec2_rotate(relative_position, to.rotation() - from.rotation() + deg2rad(180.F));
 
     // Translate to the exit portal's position
     return {
@@ -33,11 +33,9 @@ void teleport_ball(ball& ball, Portal const& entrance, Portal const& exit)
     ball.pos = transform_point_portal_to_portal(ball.pos, entrance, exit);
 
     // Rotate the velocity to align with the exit portal's context
-    vec2 rotated_velocity = vec2_rotate(ball.velocity, exit.rotation() - entrance.rotation());
+    ball.velocity = vec2_rotate(ball.velocity, exit.rotation() - entrance.rotation() + deg2rad(180.F));
 
-    // Reflect the velocity based on the exit portal's normal
     vec2 exit_normal = exit.normal();
-    ball.velocity = vec2_reflect(rotated_velocity, exit_normal);
 
     // Move the ball away from the portal to avoid immediate re-intersection
     ball.pos.x += exit_normal.x * ball.r * 2;
