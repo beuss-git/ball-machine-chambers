@@ -25,7 +25,7 @@ public:
     Chamber(size_t max_balls, size_t max_canvas_size)
     {
         m_balls = std::vector<ball>(max_balls);
-        m_canvas = std::vector<int32_t>(max_canvas_size);
+        m_canvas = std::vector<uint32_t>(max_canvas_size);
     }
 
     [[nodiscard]] void* balls_memory() { return m_balls.data(); }
@@ -42,7 +42,7 @@ public:
 
 protected:
     std::vector<ball> m_balls;
-    std::vector<int32_t> m_canvas;
+    std::vector<uint32_t> m_canvas;
 };
 
 extern std::unique_ptr<Chamber> g_chamber;
