@@ -5,6 +5,16 @@
 #include <libchamber/print.hpp>
 #include <ranges>
 
+void draw_line(canvas_ity::canvas& context, float x1, float y1, float x2, float y2)
+{
+    context.begin_path();
+    context.move_to(x1, y1);
+    context.line_to(x2, y2);
+    context.close_path();
+    context.set_color(canvas_ity::stroke_style, 0, 0, 0, 1.0F);
+    context.stroke();
+}
+
 void init(size_t max_num_balls, size_t max_canvas_size)
 {
     chamber::init<Portals>(max_num_balls, max_canvas_size);
@@ -42,6 +52,50 @@ void teleport_ball(ball& ball, Portal const& entrance, Portal const& exit)
     ball.pos.x += exit_normal.x * ball.r * 2;
 }
 
+pos2 closest_point_on_segment(pos2 c, pos2 a, pos2 b)
+{
+    vec2 ab = { b.x - a.x, b.y - a.y };
+    vec2 ac = { c.x - a.x, c.y - a.y };
+    float ab_ab = ab.x * ab.x + ab.y * ab.y; // Dot product of ab with itself
+    float ab_ac = ab.x * ac.x + ab.y * ac.y; // Dot product of ab with ac
+    float t = ab_ac / ab_ab;
+
+    // Clamp t from 0.0 to 1.0 to keep the projection within the segment
+    t = fmax(0.0, fmin(1.0, t));
+
+    // Compute the closest point
+    pos2 closest;
+    closest.x = a.x + t * ab.x;
+    closest.y = a.y + t * ab.y;
+    return closest;
+}
+
+bool check_collision(ball& b, surface& s)
+{
+    // Calculate normal
+    vec2 normal = { s.b.y - s.a.y, s.a.x - s.b.x };
+
+    // Check if the ball is moving towards the normal
+    if (vec2_dot(&b.velocity, &normal) < 0) {
+        return false; // Not moving towards the surface from the correct side
+    }
+
+    // Find the closest point on the segment to the ball's center
+    pos2 closest = closest_point_on_segment(b.pos, s.a, s.b);
+
+    // Calculate distance from closest point on segment to ball center
+    float dx = closest.x - b.pos.x;
+    float dy = closest.y - b.pos.y;
+    float distance = sqrt(dx * dx + dy * dy);
+
+    // Check if the distance is less than or equal to the ball's radius
+    if (distance <= (b.r / 10.f)) {
+        return true;
+    }
+
+    return false;
+}
+
 void Portals::step(size_t num_balls, float delta)
 {
     for (auto& ball : std::ranges::views::take(m_balls, num_balls)) {
@@ -56,7 +110,12 @@ void Portals::step(size_t num_balls, float delta)
             auto const& exit_portal = portals.at((j + 1) % portals.size());
 
             auto surface_in = entry_portal.calculate_surface();
-            if (vec2 res {}; surface_collision_resolution(&surface_in, &ball->pos, &ball->velocity, &res)) {
+            // vec2 res {};
+            // if (surface_collision_resolution(&surface_in, &ball->pos, &ball->velocity, &res)) {
+            if (check_collision(*ball, surface_in)) {
+                // print("Teleporting ball from portal %d to portal %d\n", j, (j + 1) % portals.size());
+                // print("Entry surface: (%.2f, %.2f) -> (%.2f, %.2f)\n", surface_in.a.x, surface_in.a.y, surface_in.b.x, surface_in.b.y);
+
                 teleport_ball(*ball, entry_portal, exit_portal);
             }
         }
@@ -81,6 +140,9 @@ void Portals::render(size_t canvas_width, size_t canvas_height)
     };
     fill_screen(0xFFFFFFFF);
 
+    // m_ctx.set_color(canvas_ity::fill_style, 1, 1, 1, 1.0F);
+    // m_ctx.fill_rectangle(0, 0, canvas_width, canvas_height);
+
     draw_image(
         blue_portal_data.data(),
         140, 56,
@@ -90,6 +152,22 @@ void Portals::render(size_t canvas_width, size_t canvas_height)
         orange_portal_data.data(),
         140, 56,
         (int)pix2pos_x(m_orange_portal.pos().x), (int)pix2pos_y(m_orange_portal.pos().y));
+
+    //     std::array<Portal, 2> portals = { m_blue_portal, m_orange_portal };
+    //     for (auto const& portal : portals) {
+    //         auto const surf = portal.calculate_surface();
+    //         draw_line(m_ctx,
+    //             pix2pos_x(surf.a.x),
+    //             pix2pos_y(surf.a.y),
+    //             pix2pos_x(surf.b.x),
+    //             pix2pos_y(surf.b.y));
+    //     }
+    //
+    //     m_ctx.get_image_data(
+    //         reinterpret_cast<unsigned char*>(m_canvas.data()),
+    //         static_cast<int>(canvas_width), static_cast<int>(canvas_height),
+    //         static_cast<int>(canvas_width * 4),
+    //         0, 0);
 }
 
 void Portals::draw_image(uint32_t const* data, int image_width, int image_height, int x, int y)

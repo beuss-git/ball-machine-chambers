@@ -1,6 +1,7 @@
 #ifndef PORTALS_HPP
 #define PORTALS_HPP
 #include "portal.hpp"
+#include <canvas_ity/canvas_ity.hpp>
 #include <libchamber/chamber.hpp>
 #include <libchamber/print.hpp>
 
@@ -22,12 +23,16 @@ public:
 
     Portals(size_t max_balls, size_t max_canvas_size)
         : Chamber(max_balls, max_canvas_size)
+    //, m_ctx(compute_width_height(max_canvas_size).x, compute_width_height(max_canvas_size).y)
     {
         // m_blue_portal = Portal { { 0.805F, 0.25F }, { 0.805F, 0.25F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(30.F), 0.7F };
         // m_orange_portal = Portal { { 0.20F, 0.1F }, { 0.20F, 0.15F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0), 0.5F };
 
-        m_blue_portal = Portal { { 0.5F, 0.595F }, { 0.805F, 0.25F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(180.F), 0.7F };
-        m_orange_portal = Portal { { 0.5F, 0.1F }, { 0.20F, 0.15F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0.F), 0.5F };
+        // m_blue_portal = Portal { { 0.55F, 0.595F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(180.F), 0.7F };
+        // m_orange_portal = Portal { { 0.45F, 0.1F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0.F), 0.5F };
+
+        m_blue_portal = Portal { { 0.5F + 0.002F, 0.595F }, { 0.0F, 0.7F, 1.0F }, 0.15F, 0.05F, deg2rad(180.F), 0.7F };
+        m_orange_portal = Portal { { 0.5F - 0.002F, 0.1F }, { 1.0F, 0.5F, 0.0F }, 0.15F, 0.05F, deg2rad(0.F), 0.5F };
 
         auto const [max_canvas_width, max_canvas_height] = compute_width_height(max_canvas_size);
 
@@ -60,6 +65,7 @@ private:
 
     void draw_image(uint32_t const* data, int image_width, int image_height, int x, int y);
 
+    // canvas_ity::canvas m_ctx;
     Portal m_blue_portal;
     Portal m_orange_portal;
 #ifdef RENDER_LIVE

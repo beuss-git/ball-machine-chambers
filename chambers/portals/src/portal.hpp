@@ -12,10 +12,8 @@ extern "C" {
 class Portal {
 public:
     Portal() = default;
-    Portal(pos2 start_pos, pos2 end_pos, Color color, float rad_x, float rad_y, float rotation = 0.0F, float movement_duration = 1.F)
-        : m_start_pos(start_pos)
-        , m_end_pos(end_pos)
-        , m_pos(start_pos)
+    Portal(pos2 pos, Color color, float rad_x, float rad_y, float rotation = 0.0F, float movement_duration = 1.F)
+        : m_pos(pos)
         , m_color(color)
         , m_rad_x(rad_x)
         , m_rad_y(rad_y)
@@ -33,7 +31,7 @@ public:
     [[nodiscard]] surface calculate_surface() const;
     [[nodiscard]] vec2 normal() const;
 
-    [[maybe_unused]] float cubic_ease_in_out(float t) const
+    [[maybe_unused]] [[nodiscard]] float cubic_ease_in_out(float t) const
     {
         if (t < 0.5F) {
             return 4 * t * t * t;
@@ -53,12 +51,10 @@ public:
     void update_position(float delta);
 
 private:
-    pos2 m_start_pos { 0, 0 }; // Starting position
-    pos2 m_end_pos { 0, 0 };   // End position
+    pos2 m_pos { 0, 0 }; // End position
     float m_time_accumulator {};
     bool m_is_reversing { false };     // Flag to reverse direction
     float m_movement_duration { 0.5 }; // Duration from start to end
-    pos2 m_pos { 0, 0 };               // End position
     Color m_color {};
     float m_rad_x {};
     float m_rad_y {};
