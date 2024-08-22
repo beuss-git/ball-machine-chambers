@@ -8,6 +8,11 @@ extern "C" {
 }
 #endif
 
+struct Target {
+    pos2 pos;
+    float time_acc;
+    float time_to_target; // Calculated on the fly
+};
 struct Guard {
     pos2 start_pos { 0.5, 0.5 };
     pos2 pos { 0.5, 0.5 };
@@ -18,8 +23,8 @@ struct Guard {
 
     // targeting
     bool has_target = false;
-    pos2 target_pos;
-    float time = 0.F;
+
+    Target target;
 };
 
 class GuardChamber : public chamber::Chamber {
@@ -37,7 +42,19 @@ public:
     size_t save_size() override { return sizeof(m_save_guard_pos); }
     void save() override { m_save_guard_pos = m_guard.pos; }
     void load() override { m_guard.pos = m_save_guard_pos; }
+
 private:
+    enum class BallResultState {
+        NOT_FOUND,
+        OUT_OF_BOUNDS,
+        FOUND,
+    };
+    struct BallResult {
+        ball* ball;
+        BallResultState state;
+    };
+
+    BallResult find_ball(size_t num_balls, float time_to_target);
     void draw_image(uint32_t const* data, int image_width, int image_height, int x, int y);
 
 private:
