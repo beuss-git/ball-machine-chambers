@@ -31,6 +31,12 @@ public:
 
     void render(size_t canvas_width, size_t canvas_height) override;
 
+    pos2 m_save_guard_pos;
+
+    void* save_memory() override { return &m_save_guard_pos; }
+    size_t save_size() override { return sizeof(m_save_guard_pos); }
+    void save() override { m_save_guard_pos = m_guard.pos; }
+    void load() override { m_guard.pos = m_save_guard_pos; }
 private:
     void draw_image(uint32_t const* data, int image_width, int image_height, int x, int y);
 
