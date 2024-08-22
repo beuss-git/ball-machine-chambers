@@ -29,7 +29,7 @@ pos2 transform_point_portal_to_portal(pos2 point, Portal const& from, Portal con
     };
 
     // Rotate relative_position to align with the exit portal
-    vec2 rotated_position = vec2_rotate(relative_position, to.rotation() - from.rotation() + deg2rad(180.F));
+    vec2 rotated_position = vec2_rotate(relative_position, to.rotation() - from.rotation());
 
     // Translate to the exit portal's position
     return {
@@ -44,7 +44,13 @@ void teleport_ball(ball& ball, Portal const& entrance, Portal const& exit)
     ball.pos = transform_point_portal_to_portal(ball.pos, entrance, exit);
 
     // Rotate the velocity to align with the exit portal's context
-    ball.velocity = vec2_rotate(ball.velocity, exit.rotation() - entrance.rotation() + deg2rad(180.F));
+    // ball.velocity = vec2_rotate(ball.velocity, exit.rotation() - entrance.rotation());
+    float angle_diff = exit.rotation() - entrance.rotation();
+
+    float vx = ball.velocity.x * std::cos(angle_diff) - ball.velocity.y * std::sin(angle_diff);
+    float vy = ball.velocity.x * std::sin(angle_diff) + ball.velocity.y * std::cos(angle_diff);
+    ball.velocity = { vx, vy };
+    print("Teleporting ball with velocity (%.2f, %.2f)\n", ball.velocity.x, ball.velocity.y);
 
     vec2 exit_normal = exit.normal();
 
@@ -64,7 +70,7 @@ pos2 closest_point_on_segment(pos2 c, pos2 a, pos2 b)
     t = fmax(0.0, fmin(1.0, t));
 
     // Compute the closest point
-    pos2 closest;
+    pos2 closest {};
     closest.x = a.x + t * ab.x;
     closest.y = a.y + t * ab.y;
     return closest;
