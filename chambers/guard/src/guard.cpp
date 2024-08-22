@@ -2,11 +2,11 @@
 
 #include "image_data.hpp"
 #include <libchamber/print.hpp>
-#include <numbers>
 #include <ranges>
 
 void init(size_t max_num_balls, size_t max_canvas_size)
 {
+    print("Initializing guard chamber!\n");
     chamber::init<GuardChamber>(max_num_balls, max_canvas_size);
 }
 
@@ -15,7 +15,34 @@ GuardChamber::GuardChamber(size_t max_balls, size_t max_canvas_size)
 {
 }
 
-pos2 predict_position(ball const& ball, float seconds)
+float const STEP_LEN_S = 1.666666f / 1300.0f; // Equivalent to step_len_s in your code
+
+pos2 predict_position(ball const& ball, float prediction_time)
+{
+    pos2 predicted_pos = ball.pos;
+    vec2 velocity = ball.velocity;
+    float const G = -9.832f; // Acceleration due to gravity (m/s^2)
+
+    int num_steps = (int)(prediction_time / STEP_LEN_S);
+    float remaining_time = prediction_time - (num_steps * STEP_LEN_S);
+
+    // Simulate full steps
+    for (int i = 0; i < num_steps; i++) {
+        predicted_pos.x += velocity.x * STEP_LEN_S;
+        predicted_pos.y += velocity.y * STEP_LEN_S;
+        velocity.y += G * STEP_LEN_S;
+    }
+
+    // Handle remaining time (less than one full step)
+    if (remaining_time > 0) {
+        predicted_pos.x += velocity.x * remaining_time;
+        predicted_pos.y += velocity.y * remaining_time;
+        // We don't update velocity here as it won't be used again
+    }
+
+    return predicted_pos;
+}
+pos2 predict_position_old(ball const& ball, float seconds)
 {
     pos2 predicted_pos {};
 
@@ -94,7 +121,7 @@ bool is_moving_towards(ball const& ball, Guard const& guard)
 
 GuardChamber::BallResult GuardChamber::find_ball(size_t num_balls, float time_to_target)
 {
-    if (time_to_target < 0.05F) {
+    if (time_to_target < 0.12F) {
         return BallResult { .ball = nullptr, .state = BallResultState::NOT_FOUND };
     }
     float min_distance = std::numeric_limits<float>::max();
@@ -126,48 +153,116 @@ GuardChamber::BallResult GuardChamber::find_ball(size_t num_balls, float time_to
     return BallResult { .ball = closest_ball, .state = state };
 }
 
+void apply_gravity2(struct ball* ball, float delta)
+{
+    float const G = -9.832f; // Acceleration due to gravity (m/s^2)
+    ball->velocity.y += G * delta;
+}
+// void test_prediction_accuracy(ball& test_ball, float total_time, float delta_time)
+// {
+//     ball original_ball = test_ball; // Save the original state
+//     pos2 predicted_pos = predict_position2(test_ball, total_time, delta_time);
+//
+//     // Simulate actual movement
+//     float time = 0;
+//     while (time < total_time) {
+//         apply_gravity(&test_ball, delta_time);
+//         test_ball.pos.x += test_ball.velocity.x * delta_time;
+//         test_ball.pos.y += test_ball.velocity.y * delta_time;
+//         time += delta_time;
+//     }
+//
+//     // Compare predicted vs actual
+//     float dx = std::abs(predicted_pos.x - test_ball.pos.x);
+//     float dy = std::abs(predicted_pos.y - test_ball.pos.y);
+//
+//     print("Prediction error: dx = %f, dy = %f\n", dx, dy);
+//
+//     test_ball = original_ball; // Restore original state
+// }
 void GuardChamber::step(size_t num_balls, float delta)
 {
     for (auto& ball : std::ranges::views::take(m_balls, num_balls)) {
         apply_gravity(&ball, delta);
+
+        // test_prediction_accuracy(ball, 0.5F, 0.1F);
     }
 
-    static constexpr float WANTED_TIME_TO_TARGET = 0.15F;
+    static constexpr float WANTED_TIME_TO_TARGET = 0.20F;
     m_guard.cooldown_time += delta;
     if (!m_guard.has_target && m_guard.cooldown_time >= 0.05F) {
-        BallResult result = find_ball(num_balls, WANTED_TIME_TO_TARGET);
-        float time_deduction = 0.F;
+        float calculated_time_to_target = WANTED_TIME_TO_TARGET;
+        BallResult result = find_ball(num_balls, calculated_time_to_target);
 
-        while (result.state == BallResultState::OUT_OF_BOUNDS) {
-            time_deduction += 0.02F;
-            result = find_ball(num_balls, WANTED_TIME_TO_TARGET - time_deduction);
-        }
-        float calculated_time_to_target = WANTED_TIME_TO_TARGET - time_deduction;
-
+        // while (result.state == BallResultState::OUT_OF_BOUNDS) {
+        //     calculated_time_to_target -= 0.01F;
+        //     result = find_ball(num_balls, calculated_time_to_target);
+        // }
+        //
         if (result.state == BallResultState::FOUND) {
             pos2 predicted_pos
                 = predict_position(*result.ball, calculated_time_to_target);
 
+            print("Guard has target at (%.2f, %.2f)\n", predicted_pos.x, predicted_pos.y);
             m_guard.start_pos = m_guard.pos;
-            m_guard.target.pos = predicted_pos;
+            m_guard.target.ball = result.ball;
             m_guard.has_target = true;
             m_guard.target.time_acc = 0.F;
-            m_guard.target.time_to_target = std::max(calculated_time_to_target - 0.01F, 0.F); // We intercept a little quicker to be ahead of the ball
+            m_guard.target.initial_time_to_target = calculated_time_to_target;
         }
     }
 
     pos2 old_guard_pos = m_guard.pos;
     if (m_guard.has_target) {
-        // Lerp towards target.
-        m_guard.pos = {
-            .x = lerp(m_guard.start_pos.x, m_guard.target.pos.x, m_guard.target.time_acc / m_guard.target.time_to_target),
-            .y = lerp(m_guard.start_pos.y, m_guard.target.pos.y, m_guard.target.time_acc / m_guard.target.time_to_target),
-        };
+        float remaining_time = m_guard.target.initial_time_to_target - m_guard.target.time_acc;
+        pos2 predicted_pos = predict_position(*m_guard.target.ball, remaining_time);
 
-        m_guard.target.time_acc += delta;
-        if (m_guard.target.time_acc / m_guard.target.time_to_target >= 1.F) {
+        // Calculate the offset interception point
+        vec2 ball_velocity = m_guard.target.ball->velocity;
+        float velocity_magnitude = std::sqrt(ball_velocity.x * ball_velocity.x + ball_velocity.y * ball_velocity.y);
+
+        if (velocity_magnitude > 0) {
+            vec2 normalized_velocity = { ball_velocity.x / velocity_magnitude, ball_velocity.y / velocity_magnitude };
+            // This one is correct, but not as interesting
+            // float offset = m_guard.target.ball->r + m_guard.radius;
+            float offset = m_guard.radius;
+
+            // Adjust the predicted position to be just ahead of the ball
+            predicted_pos.x += normalized_velocity.x * offset;
+            predicted_pos.y += normalized_velocity.y * offset;
+        }
+
+        // Lerp towards target.
+        float t = m_guard.target.time_acc / m_guard.target.initial_time_to_target;
+        m_guard.pos = {
+            .x = lerp(m_guard.start_pos.x, predicted_pos.x, t),
+            .y = lerp(m_guard.start_pos.y, predicted_pos.y, t),
+        };
+        // print("Guard position: (%.2f, %.2f)\n", m_guard.pos.x, m_guard.pos.y);
+
+        if (t >= 1.F) {
             m_guard.has_target = false;
             m_guard.cooldown_time = 0.F;
+        }
+        m_guard.target.time_acc += delta;
+    } else {
+        // Move guard towards middle
+        float middle_x = 1.F / 2.F;
+        float middle_y = 0.7F / 2.F;
+
+        // If not already in middle
+        auto const delta_pos = vec2 { m_guard.pos.x - middle_x, m_guard.pos.y - middle_y };
+        if (vec2_length(&delta_pos) < 0.005F) {
+            m_guard.pos = { middle_x, middle_y };
+        } else {
+            vec2 direction = {
+                .x = middle_x - m_guard.pos.x,
+                .y = middle_y - m_guard.pos.y,
+            };
+            vec2 normalized_direction = vec2_normalized(&direction);
+            float const speed = 1.5F;
+            m_guard.pos.x += normalized_direction.x * speed * delta;
+            m_guard.pos.y += normalized_direction.y * speed * delta;
         }
     }
 
@@ -201,7 +296,7 @@ void GuardChamber::render(size_t canvas_width, size_t canvas_height)
                 if (i * i + j * j < radius * radius) {
                     auto const index = (x + i) + (y + j) * canvas_width;
                     if (index >= 0 && index < canvas_width * canvas_height) {
-                        m_canvas[index] = 0xFF00FFFF;
+                        m_canvas[index] = 0xFFFF00FF;
                     }
                 }
             }
@@ -231,6 +326,11 @@ void GuardChamber::render(size_t canvas_width, size_t canvas_height)
         orb_data.data(),
         20, 22,
         (int)pos2pix_x(m_guard.pos.x), (int)pos2pix_y(m_guard.pos.y));
+
+    // float remaining_time = m_guard.target.initial_time_to_target - m_guard.target.time_acc;
+    // pos2 predicted_pos = predict_position(*m_guard.target.ball, remaining_time);
+    // draw_circle(pos2pix_x(predicted_pos.x), pos2pix_y(predicted_pos.y), 10);
+    // draw_circle(pos2pix_x(m_guard.target.pos.x), pos2pix_y(m_guard.target.ball.pos.y), 10);
 }
 
 void GuardChamber::draw_image(uint32_t const* data, int image_width, int image_height, int x, int y)

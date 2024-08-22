@@ -9,9 +9,9 @@ extern "C" {
 #endif
 
 struct Target {
-    pos2 pos;
+    ball* ball;
     float time_acc;
-    float time_to_target; // Calculated on the fly
+    float initial_time_to_target; // Calculated on the fly
 };
 struct Guard {
     pos2 start_pos { 0.5, 0.5 };
