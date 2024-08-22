@@ -10,6 +10,7 @@ extern "C" {
 
 struct Target {
     ball* ball;
+    pos2 predicted_pos;
     float time_acc;
     float initial_time_to_target; // Calculated on the fly
 };
