@@ -17,27 +17,58 @@ GuardChamber::GuardChamber(size_t max_balls, size_t max_canvas_size)
 
 float const STEP_LEN_S = 1.666666f / 1300.0f; // Equivalent to step_len_s in your code
 
+void clamp_speed(ball* ball)
+{
+    auto const max_speed = 2.5;
+    auto const max_speed_2 = max_speed * max_speed;
+    auto const ball_speed_2 = vec2_length_2(&ball->velocity);
+    if (ball_speed_2 > max_speed_2) {
+        auto const ball_speed = sqrt(ball_speed_2);
+        ball->velocity = vec2_mul(&ball->velocity, max_speed / ball_speed);
+    }
+}
+
+void clamp_velocity(vec2* vel)
+{
+    auto const max_speed = 2.5;
+    auto const max_speed_2 = max_speed * max_speed;
+    auto const ball_speed_2 = vec2_length_2(vel);
+    if (ball_speed_2 > max_speed_2) {
+        auto const ball_speed = sqrt(ball_speed_2);
+        *vel = vec2_mul(vel, max_speed / ball_speed);
+    }
+}
+void apply_velocity(ball* ball, float delta)
+{
+    ball->pos = pos2_add(&ball->pos, &ball->velocity);
+}
 pos2 predict_position(ball const& ball, float prediction_time)
 {
     pos2 predicted_pos = ball.pos;
     vec2 velocity = ball.velocity;
     float const G = -9.832f; // Acceleration due to gravity (m/s^2)
 
-    int num_steps = (int)(prediction_time / STEP_LEN_S);
+    int num_steps = static_cast<int>(prediction_time / STEP_LEN_S);
     float remaining_time = prediction_time - (num_steps * STEP_LEN_S);
 
-    // Simulate full steps
+    // struct ball ball_copy = ball;
+    //  Simulate full steps
     for (int i = 0; i < num_steps; i++) {
+        velocity.y += G * STEP_LEN_S;
+        clamp_velocity(&velocity);
+
         predicted_pos.x += velocity.x * STEP_LEN_S;
         predicted_pos.y += velocity.y * STEP_LEN_S;
-        velocity.y += G * STEP_LEN_S;
     }
 
     // Handle remaining time (less than one full step)
     if (remaining_time > 0) {
+        // pos2 before = predicted_pos;
         predicted_pos.x += velocity.x * remaining_time;
         predicted_pos.y += velocity.y * remaining_time;
-        // We don't update velocity here as it won't be used again
+        // vec2 delta = pos2_sub(&predicted_pos, &before);
+        // print("Delta: (%.2f, %.2f)\n", delta.x, delta.y);
+        //  We don't update velocity here as it won't be used again
     }
 
     return predicted_pos;
