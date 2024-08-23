@@ -9,10 +9,10 @@ extern "C" {
 #endif
 
 struct Target {
-    ball* ball;
     pos2 predicted_pos;
+    // pos2 predicted_pos_naive;
     float time_acc;
-    float initial_time_to_target; // Calculated on the fly
+    float time_to_target; // Calculated on the fly
 };
 struct Guard {
     pos2 start_pos { 0.5, 0.5 };
@@ -26,6 +26,12 @@ struct Guard {
     bool has_target = false;
 
     Target target;
+};
+
+struct PredictionResult {
+    pos2 pos;
+    pos2 pos_naive;
+    vec2 velocity;
 };
 
 class GuardChamber : public chamber::Chamber {
@@ -52,6 +58,7 @@ private:
     };
     struct BallResult {
         ball* ball;
+        PredictionResult prediction;
         BallResultState state;
     };
 
