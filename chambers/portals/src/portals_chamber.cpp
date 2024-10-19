@@ -44,13 +44,11 @@ void teleport_ball(ball& ball, Portal const& entrance, Portal const& exit)
     ball.pos = transform_point_portal_to_portal(ball.pos, entrance, exit);
 
     // Rotate the velocity to align with the exit portal's context
-    // ball.velocity = vec2_rotate(ball.velocity, exit.rotation() - entrance.rotation());
     float angle_diff = exit.rotation() - entrance.rotation();
 
     float vx = ball.velocity.x * std::cos(angle_diff) - ball.velocity.y * std::sin(angle_diff);
     float vy = ball.velocity.x * std::sin(angle_diff) + ball.velocity.y * std::cos(angle_diff);
     ball.velocity = { vx, vy };
-    print("Teleporting ball with velocity (%.2f, %.2f)\n", ball.velocity.x, ball.velocity.y);
 
     vec2 exit_normal = exit.normal();
 
@@ -116,12 +114,7 @@ void Portals::step(size_t num_balls, float delta)
             auto const& exit_portal = portals.at((j + 1) % portals.size());
 
             auto surface_in = entry_portal.calculate_surface();
-            // vec2 res {};
-            // if (surface_collision_resolution(&surface_in, &ball->pos, &ball->velocity, &res)) {
             if (check_collision(*ball, surface_in)) {
-                // print("Teleporting ball from portal %d to portal %d\n", j, (j + 1) % portals.size());
-                // print("Entry surface: (%.2f, %.2f) -> (%.2f, %.2f)\n", surface_in.a.x, surface_in.a.y, surface_in.b.x, surface_in.b.y);
-
                 teleport_ball(*ball, entry_portal, exit_portal);
             }
         }

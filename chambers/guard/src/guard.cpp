@@ -6,7 +6,6 @@
 
 void init(size_t max_num_balls, size_t max_canvas_size)
 {
-    // print("Initializing guard chamber!\n");
     chamber::init<GuardChamber>(max_num_balls, max_canvas_size);
 }
 
@@ -39,16 +38,11 @@ void clamp_velocity(vec2* vel)
     }
 }
 
-float const G = -9.832; // Acceleration due to gravity in m/s^2
-                        //
+float const G = -9.832; 
 pos2 predict_position_naive(ball const& ball, float x)
 {
     // Apply gravity to velocity for the time x
     vec2 new_velocity = ball.velocity;
-    // new_velocity.y += G * x;
-    //
-    // // Clamp velocity if it exceeds the maximum speed
-    // clamp_velocity(&new_velocity);
 
     // Calculate final position using possibly clamped velocity
     pos2 pos_final;
@@ -67,7 +61,6 @@ PredictionResult predict_position(ball const& ball, float prediction_time)
     int num_steps = static_cast<int>(prediction_time / STEP_LEN_S);
     float remaining_time = prediction_time - (num_steps * STEP_LEN_S);
 
-    // struct ball ball_copy = ball;
     //  Simulate full steps
     for (int i = 0; i < num_steps; i++) {
         velocity.y += G * STEP_LEN_S;
@@ -79,12 +72,8 @@ PredictionResult predict_position(ball const& ball, float prediction_time)
 
     // Handle remaining time (less than one full step)
     if (remaining_time > 0) {
-        // pos2 before = predicted_pos;
         predicted_pos.x += velocity.x * remaining_time;
         predicted_pos.y += velocity.y * remaining_time;
-        // vec2 delta = pos2_sub(&predicted_pos, &before);
-        // print("Delta: (%.2f, %.2f)\n", delta.x, delta.y);
-        //  We don't update velocity here as it won't be used again
     }
 
     return { .pos = predicted_pos, .velocity = velocity };
@@ -198,8 +187,8 @@ pos2 offset_position(pos2 pos, Guard const& guard, ball* ball, vec2 velocity)
 
     if (velocity_magnitude > 0) {
         vec2 normalized_velocity = { ball_velocity.x / velocity_magnitude, ball_velocity.y / velocity_magnitude };
-        // This one is correct, but not as interesting
         float offset = ball->r + guard.radius - 0.01F /* Add small offset to make it more interesting */;
+        // This one is correct, but not as interesting
         // float offset = result.ball->r + m_guard.radius;
 
         // Adjust the predicted position to be just ahead of the ball
@@ -230,14 +219,12 @@ void GuardChamber::step(size_t num_balls, float delta)
         if (result.state == BallResultState::FOUND) {
 
             result.prediction.pos = offset_position(result.prediction.pos, m_guard, result.ball, result.prediction.velocity);
-            // result.prediction.pos_naive = offset_position(result.prediction.pos_naive, m_guard, result.ball, result.prediction.velocity);
 
             m_guard.start_pos = m_guard.pos;
             m_guard.has_target = true;
             m_guard.target.time_acc = 0.F;
             m_guard.target.time_to_target = calculated_time_to_target;
             m_guard.target.predicted_pos = result.prediction.pos;
-            // m_guard.target.predicted_pos_naive = result.prediction.pos_naive;
         }
     }
 

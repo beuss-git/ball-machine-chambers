@@ -1,5 +1,7 @@
 set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
 
+add_compile_options(-fvisibility=hidden)
+
 # Global link options for WebAssembly
 add_link_options(
   "SHELL:-s WASM=1"
